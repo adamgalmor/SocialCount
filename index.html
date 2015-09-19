@@ -1,0 +1,86 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+	<script>		
+		$(document).ready(function() {
+			var pageurls = ['www.facebook.com', 'www.twitter.com', 'www.pinterest.com'];//what to search
+			var providers = ['facebook', 'twitter','pinterest'];//where to search
+			
+			function GetApiUrl(provider, pageurl)
+			{
+      			var url;				
+				if(provider === '') { alert('please provide a provider'); return; }
+				else if(pageurl === '') { alert('please provide a pageurl'); return; }
+				
+				else if(provider === 'facebook')
+					url = "https://graph.facebook.com/fql?q=SELECT%20like_count,%20share_count,%20comment_count%20FROM%20link_stat%20WHERE%20url%20=%20%22" + pageurl + "%22";
+				else if(provider === 'twitter')
+					url = "http://cdn.api.twitter.com/1/urls/count.json?url=" + pageurl;
+				else if(provider === 'pinterest')
+					url = "http://api.pinterest.com/v1/urls/count.json?url=http://" + pageurl + "";
+				return url;
+			}
+
+			$.GetSocialCount = function(provider, pageurl) {
+				var deferred = $.Deferred();
+					
+					if(typeof(provider) === 'string' && typeof(pageurl) === 'string') 
+					{
+					    $.ajax({
+					        url: GetApiUrl(provider, pageurl),
+					        dataType: "jsonp",
+					        success: deferred.resolve,
+					        error: deferred.reject
+					    });
+					}
+					if(typeof(provider) === 'string' && pageurl instanceof Array) 
+					{
+						var reqs = [];
+						for(var i=0; i<pageurl.length; i++) {
+							reqs.push($.GetSocialCount(provider, pageurls[i]))
+						}
+						$.when.apply($, reqs).then(							
+				            function() {
+				                deferred.resolve(Array.prototype.slice.call(arguments));
+				            },
+				            function() {
+				                deferred.fail(Array.prototype.slice.call(arguments));
+				            });
+					}
+					if(provider instanceof Array && pageurl instanceof Array) 
+					{
+						var reqs = [];
+						for(var i=0; i<provider.length; i++) {
+							for(var j=0; j<pageurl.length; j++) {							
+								reqs.push($.GetSocialCount(provider[i], pageurls[j]))
+							}
+						}
+						$.when.apply($, reqs).then(							
+				            function() {
+				                deferred.resolve(Array.prototype.slice.call(arguments));
+				            },
+				            function() {
+				                deferred.fail(Array.prototype.slice.call(arguments));
+				            });
+					}
+					return deferred;					
+			};
+			//function overloading:
+			$.GetSocialCount('facebook', 'www.facebook.com').done(function(result){
+				console.log(result);
+			})
+
+			$.GetSocialCount('facebook', pageurls).done(function(result){
+				console.log(result);
+			})
+
+			$.GetSocialCount(providers, pageurls).done(function(result){
+				console.log(result);
+			})
+		});
+	</script>
+</head>
+	<body>
+	</body>
+</html>
